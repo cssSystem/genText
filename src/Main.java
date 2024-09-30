@@ -1,15 +1,19 @@
 import java.util.Random;
 import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.atomic.AtomicReference;
 
 public class Main {
     public static ArrayBlockingQueue<String> Q1 = new ArrayBlockingQueue<>(100);
     public static ArrayBlockingQueue<String> Q2 = new ArrayBlockingQueue<>(100);
     public static ArrayBlockingQueue<String> Q3 = new ArrayBlockingQueue<>(100);
 
-    public static void main(String[] args) {
-        long e = 10;
+    public static void main(String[] args) throws InterruptedException {
+        long e = 10_000;
+        AtomicReference<String> textA = new AtomicReference<>();
+        AtomicReference<String> textB = new AtomicReference<>();
+        AtomicReference<String> textC = new AtomicReference<>();
 
-        new Thread(() -> {
+        Thread T1 = new Thread(() -> {
             String text;
             for (int i = 0; i < e; i++) {
                 text = generateText("abc", 100_000);
@@ -21,10 +25,10 @@ public class Main {
                     return;
                 }
             }
-        }).start();
+        });
 
 
-        new Thread(() -> {
+        Thread analysisFlow1 = new Thread(() -> {
             String text = null;
             long l = 0;
             String var;
@@ -33,12 +37,7 @@ public class Main {
                 try {
                     var = Q1.take();
 
-                    long l1 = 0;
-                    for (int j = 0; j < var.length(); j++) {
-                        if (var.charAt(j) == 'a') {
-                            l1++;
-                        }
-                    }
+                    long l1 = numberOfLetters(var, 'a');
                     if (l < l1) {
                         text = var;
                         l = l1;
@@ -50,11 +49,10 @@ public class Main {
                 }
 
             }
-            //System.out.println("Текст: \""+text+"\" - содержит: "+l+" букв 'а'");
-            System.out.println("Максимальное содержание букв 'а' - " + l + " шт.");
-        }).start();
+            textA.set(text);
+        });
 
-        new Thread(() -> {
+        Thread analysisFlow2 = new Thread(() -> {
             String text = null;
             long l = 0;
             String var;
@@ -63,12 +61,7 @@ public class Main {
                 try {
                     var = Q2.take();
 
-                    long l1 = 0;
-                    for (int j = 0; j < var.length(); j++) {
-                        if (var.charAt(j) == 'b') {
-                            l1++;
-                        }
-                    }
+                    long l1 = numberOfLetters(var, 'b');
                     if (l < l1) {
                         text = var;
                         l = l1;
@@ -80,11 +73,10 @@ public class Main {
                 }
 
             }
-            //System.out.println("Текст: \""+text+"\" - содержит: "+l+" букв 'b'");
-            System.out.println("Максимальное содержание букв 'b' - " + l + " шт.");
-        }).start();
+            textB.set(text);
+        });
 
-        new Thread(() -> {
+        Thread analysisFlow3 = new Thread(() -> {
             String text = null;
             long l = 0;
             String var;
@@ -93,12 +85,7 @@ public class Main {
                 try {
                     var = Q3.take();
 
-                    long l1 = 0;
-                    for (int j = 0; j < var.length(); j++) {
-                        if (var.charAt(j) == 'c') {
-                            l1++;
-                        }
-                    }
+                    long l1 = numberOfLetters(var, 'c');
                     if (l < l1) {
                         text = var;
                         l = l1;
@@ -110,9 +97,22 @@ public class Main {
                 }
 
             }
-            //System.out.println("Текст: \""+text+"\" - содержит: "+l+" букв 'c'");
-            System.out.println("Максимальное содержание букв 'c' - " + l + " шт.");
-        }).start();
+            textC.set(text);
+        });
+
+        T1.start();
+        analysisFlow1.start();
+        analysisFlow2.start();
+        analysisFlow3.start();
+
+        T1.join();
+        analysisFlow1.join();
+        analysisFlow2.join();
+        analysisFlow3.join();
+
+        System.out.println("Максимальное содержание букв 'a' - " + numberOfLetters(textA.get(), 'a') + " шт.");
+        System.out.println("Максимальное содержание букв 'b' - " + numberOfLetters(textA.get(), 'b') + " шт.");
+        System.out.println("Максимальное содержание букв 'c' - " + numberOfLetters(textA.get(), 'c') + " шт.");
 
     }
 
@@ -125,4 +125,15 @@ public class Main {
         }
         return text.toString();
     }
+
+    public static long numberOfLetters(String text, Character a) {
+        long l1 = 0;
+        for (int j = 0; j < text.length(); j++) {
+            if (text.charAt(j) == a) {
+                l1++;
+            }
+        }
+        return l1;
+    }
+
 }
